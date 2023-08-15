@@ -12,7 +12,7 @@ import Thanks from "./components/Thanks";
 import ipConfig from "./ipConfig.json";
 
 export const config = {
-  endpoint: `http://${ipConfig.workspaceIp}:8082/api/v1`,
+  endpoint: `https://qkart-1-8ah0.onrender.com/`,
 };
 
 export default function App(props) {
