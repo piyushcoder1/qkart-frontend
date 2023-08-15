@@ -1,250 +1,147 @@
-import "@testing-library/jest-dom/extend-expect";
-import { act, render, screen } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
-import axios from "axios";
-import { createMemoryHistory } from "history";
-import { SnackbarProvider } from "notistack";
-import { Router } from "react-router-dom";
-import { config } from "../App";
-import Login from "../components/Login";
-import MockAdapter from "axios-mock-adapter";
+// CRIO_SOLUTION_START_MODULE_UNDERSTANDING_BASICS
+// CRIO_SOLUTION_END_MODULE_UNDERSTANDING_BASICS
+import React from "react";
+import Login from '../components/Login'
+import { render, unmountComponentAtNode } from "react-dom";
+import { shallow, mount } from 'enzyme';
+import { BrowserRouter } from 'react-router-dom';
+const fs = require('fs')
 
-const mock = new MockAdapter(axios);
+let container = null;
+let loginComponent = {};
 
-mock
-  .onPost(`${config.endpoint}/auth/login`, {
-    username: "crio.do",
-    password: "learnbydoing",
-  })
-  .reply(201, {
-    success: true,
-    token: "testtoken",
-    username: "crio.do",
-    balance: 5000,
-  });
 
-mock
-  .onPost(`${config.endpoint}/auth/login`, {
-    username: "crio.do",
-    password: "wrongpassword",
-  })
-  .reply(400, {
-    success: false,
-    message: "Password is incorrect",
-  });
+beforeEach(() => {
+    // setup a DOM element as a render target
+    container = document.createElement("div");
+    document.body.appendChild(container);
+});
 
-describe("Login Page", () => {
-  const history = createMemoryHistory();
+afterEach(() => {
+    // cleanup on exiting
+    unmountComponentAtNode(container);
+    container.remove();
+    container = null;
+});
 
-  beforeEach(() => {
-    mock.resetHistory();
+beforeAll(() => {
+    window.matchMedia =
+        window.matchMedia ||
+        function () {
+            return {
+                matches: false,
+                addListener: function () { },
+                removeListener: function () { }
+            };
+        };
 
-    render(
-      <SnackbarProvider
-        maxSnack={1}
-        anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "center",
-        }}
-        preventDuplicate
-      >
-        <Router history={history}>
-          <Login />
-        </Router>
-      </SnackbarProvider>
-    );
-  });
+    window.fetch = async (url, options) => {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                resolve({
+                    json: async () => {
+                        return new Promise((resolveNested) => {
+                            if (url.split("/")[url.split("/").length - 1] === "login") {
+                                resolveNested({
+                                    success: true,
+                                    token: "testtoken",
+                                    username: "test123",
+                                });
+                            }
+                        })
+                    },
+                    ok: true,
+                    status: 200
+                })
+            }, 500);
+        });
+    }
 
-  //Login Form Has Heading
-  it("should have a Login form title", () => {
-    // Matches by h1-h6 tags
-    const heading = screen.getByRole("heading", { name: "Login" });
-    expect(heading).toBeInTheDocument();
-  });
+    loginComponent = mount(
+        <BrowserRouter>
+            <Login.WrappedComponent
+                history={{
+                    push: (value) => {
+                        expect(value).toBe('/products');
+                    }
+                }}
+            />
+        </ BrowserRouter>
+    ).find("Login");
+})
 
-  it("should have a header with logo", () => {
-    // Matches by <img> tag role -> img
-    const images = screen.getAllByRole("img");
-
-    // Find <img> with matching src attribute
-    const logo = images.find(
-      (img) => img.getAttribute("src") === "logo_dark.svg"
-    );
-    expect(logo).toBeInTheDocument();
-  });
-
-  //Header has back to explore button
-  it("should have header with back to explore button", () => {
-    // Matches by <button> with text "Back To Explore" - case insensitive
-    const exploreButton = screen.getByRole("button", {
-      name: /back to explore/i,
-    });
-    expect(exploreButton).toBeInTheDocument();
-  });
-
-  it("'back to explore' button on Header should route to products", async () => {
-    // Matches by <button> with text "Back To Explore" - case insensitive
-    const exploreButton = screen.getByRole("button", {
-      name: /back to explore/i,
-    });
-    userEvent.click(exploreButton);
-
-    expect(history.location.pathname).toBe("/");
-  });
-
-  it("should have register now link", () => {
-    // Matches by <a> with href and text "Register now" - case insensitive
-    const registerNow = screen.getByRole("link", { name: /register now/i });
-    expect(registerNow).toBeInTheDocument();
-  });
-
-  it("should throw error if username field is empty", async () => {
-    const passwordInput = screen.getByLabelText(/password/i);
-
-    userEvent.type(passwordInput, "learnbydoing");
-
-    userEvent.click(screen.getByText(/login to qkart/i));    
-
-    const alert = await screen.findByRole("alert");
-    expect(alert).toBeInTheDocument();
-    expect(alert).toHaveTextContent(/(?=.*username)(?=.*required)/i);
-  });
-
-  it("should throw error if password field is empty", async () => {
-    const usernameInput = screen.getByLabelText(/username/i);
-
-    userEvent.type(usernameInput, "crio.do");
-
-    userEvent.click(screen.getByText(/login to qkart/i));    
-
-    const alert = await screen.findByRole("alert");
-    expect(alert).toBeInTheDocument();
-    expect(alert).toHaveTextContent(/(?=.*password)(?=.*required)/i);
-  });
-
-  const performFormInput = (req) => {
-    const usernameInput = screen.getByLabelText(/username/i);
-    const passwordInput = screen.getByLabelText(/password/i);
-
-    userEvent.type(usernameInput, req.username);
-    userEvent.type(passwordInput, req.password);
-
-    return { usernameInput, passwordInput };
-  };
-
-  it("should send a POST request with axios", async () => {
-    const request = {
-      username: "crio.do",
-      password: "learnbydoing",
-    };
-
-    const { usernameInput, passwordInput } = performFormInput(request);
-    expect(usernameInput).toHaveValue(request.username);
-    expect(passwordInput).toHaveValue(request.password);
-
-    await act(async () => {
-      userEvent.click(screen.getByText(/login to qkart/i));
+describe('Check UI for Login page component (UI)', () => {
+    test('Username field exists in Login page', () => {
+        expect(loginComponent.find('input[type="text"]').exists()).toBe(true);
     });
 
-    const loginPostCall = mock.history.post.find(
-      (req) => req.url === `${config.endpoint}/auth/login`
-    );
-    expect(loginPostCall).toBeTruthy();
-  });
-
-  it("should send a POST request to server with correct arguments", async () => {
-    const request = {
-      username: "crio.do",
-      password: "learnbydoing",
-    };
-
-    const { usernameInput, passwordInput } = performFormInput(request);
-    expect(usernameInput).toHaveValue(request.username);
-    expect(passwordInput).toHaveValue(request.password);
-
-    await act(async () => {
-      userEvent.click(screen.getByText(/login to qkart/i));
+    test('Password field exists in Login page', () => {
+        expect(loginComponent.find('input[type="password"]').exists()).toBe(
+            true
+        );
     });
 
-    const loginPostCall = mock.history.post.find(
-      (req) => req.url === `${config.endpoint}/auth/login`
-    );
+    test('Submit button exists in Login page', () => {
+        expect(loginComponent.find('button').exists()).toBe(true);
+    });
+});
 
-    expect(JSON.parse(loginPostCall.data)).toEqual(
-      expect.objectContaining({
-        username: request.username,
-        password: request.password,
-      })
-    );
-  });
 
-  it("should show success alert if request succeeds", async () => {
-    const request = {
-      username: "crio.do",
-      password: "learnbydoing",
-    };
+describe('Test curl commmand in login.sh for login', () => {
+    let curl;
+    try {
+        curl = fs.readFileSync('login.sh', 'utf8');
+        // console.log(curl);
+    } catch (e) {
+        console.log('Error:', e.stack);
+    }
 
-    performFormInput(request);
-
-    await act(async () => {
-      userEvent.click(screen.getByText(/login to qkart/i));
+    test('Check if request is of type POST', () => {
+        const postPattern = /(?<=-X\s*)POST/
+        const isPOST = postPattern.test(curl);
+        expect(isPOST).toBe(true);
     });
 
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent(/logged in/i);
-  });
-
-  it("should show error alert with message sent from backend if request fails", async () => {
-    const request = {
-      username: "crio.do",
-      password: "wrongpassword",
-    };
-
-    performFormInput(request);
-
-    await act(async () => {
-      userEvent.click(screen.getByText(/login to qkart/i));
+    test('Check if correct login API is called', () => {
+        const postPattern = /(\w+)?:8082\/api\/v1\/auth\/login/
+        const isPOST = postPattern.test(curl);
+        expect(isPOST).toBe(true);
     });
 
-    const alert = await screen.findByRole("alert");
-    expect(alert).toHaveTextContent(/password is incorrect/i);
-  });
-
-  it("should store values in local storage if request succeeds", async () => {
-    const request = {
-      username: "crio.do",
-      password: "learnbydoing",
-    };
-
-    performFormInput(request);
-
-    await act(async () => {
-      userEvent.click(screen.getByText(/login to qkart/i));
+    test('Content-type header is set to application/json', () => {
+        const headerPattern = /(?<=-H\s*).Content-Type:\s*application\/json\s*./i
+        const isJSON = headerPattern.test(curl);
+        expect(isJSON).toBe(true);
     });
 
-    expect(window.localStorage.setItem).toHaveBeenCalledWith(
-      "username",
-      "crio.do"
-    );
-    expect(window.localStorage.setItem).toHaveBeenCalledWith("balance", 5000);
-    expect(window.localStorage.setItem).toHaveBeenCalledWith(
-      "token",
-      "testtoken"
-    );
-  });
+})
 
-  it("should redirect to products page after success", async () => {
-    const request = {
-      username: "crio.do",
-      password: "learnbydoing",
-    };
-
-    performFormInput(request);
-
-    await act(async () => {
-      userEvent.click(screen.getByText(/login to qkart/i));
+describe('Check flow for Login page component (flow)', () => {
+    test('Login failure flow', () => {
+        loginComponent.setState({
+            username: '',
+            password: ''
+        });
+        loginComponent.instance().login();
+        expect(loginComponent.state('loading')).toBe(false);
     });
 
-    expect(history.location.pathname).toBe("/");
-  });
+    test('Login success flow', async () => {
+        loginComponent.setState({
+            username: 'test123',
+            password: 'testpass'
+        });
+        await loginComponent.instance().login();
+        expect(localStorage.getItem('token')).toBe('testtoken');
+    });
+
+    test('Login api call changes loading state', () => {
+        expect(loginComponent.state('loading')).toBe(false);
+        loginComponent.setState({
+            username: 'test123',
+            password: 'testpass'
+        });
+        loginComponent.instance().login();
+        expect(loginComponent.state('loading')).toBe(true);
+    });
 });

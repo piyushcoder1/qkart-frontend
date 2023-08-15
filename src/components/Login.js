@@ -1,40 +1,53 @@
-import { Button, CircularProgress, Stack, TextField } from "@mui/material";
-import { Box } from "@mui/system";
-import axios from "axios";
-import { useSnackbar } from "notistack";
-import React, { useState } from "react";
-import { useHistory, Link } from "react-router-dom";
+// CRIO_SOLUTION_START_MODULE_UNDERSTANDING_BASICS
+// CRIO_SOLUTION_END_MODULE_UNDERSTANDING_BASICS
+import { LockOutlined, UserOutlined } from "@ant-design/icons";
+import { Button, Input, message } from "antd";
+import React from "react";
+import { withRouter } from "react-router-dom";
 import { config } from "../App";
 import Footer from "./Footer";
 import Header from "./Header";
-import "./Login.css";
 
-const Login = () => {
-  const { enqueueSnackbar } = useSnackbar();
-  let history = useHistory();
-
-  const [formData, setFormData] = useState({});
-  const [isLoading, setIsLoading] = useState(false);
-
-  let handleInput = (e) => {
-    const name = e.target.name;
-    const value = e.target.value;
-    setFormData((prevState) => ({
-      ...prevState,
-      [name]: value,
-    }));
-  };
+/**
+ * @class Login component handles the Login page UI and functionality
+ *
+ * Contains the following fields
+ *
+ * @property {boolean} state.loading
+ *    Indicates background action pending completion. When true, further UI actions might be blocked
+ * @property {string}
+ *    state.username User given field for username
+ * @property {string}
+ *    state.password User given field for password
+ */
+class Login extends React.Component {
+  constructor() {
+    super();
+    this.state = {
+      loading: false,
+      username: "",
+      password: "",
+    };
+  }
 
   // TODO: CRIO_TASK_MODULE_LOGIN - Fetch the API response
   /**
-   * Perform the Login API call
-   * @param {{ username: string, password: string }} formData
-   *  Object with values of username, password and confirm password user entered to register
+   * Perform the API call over the network and return the response
    *
-   * API endpoint - "POST /auth/login"
+   * @returns {{ success: boolean, token: string, username: string, balance: number }|undefined}
+   *    The response JSON object
+   *
+   * -    Set the loading state variable to true
+   * -    Perform the API call via a fetch call: https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
+   *      - The call must be made asynchronously using Promises or async/await
+   *      - The call must handle any errors thrown from the fetch call
+   *      - Parse the result as JSON
+   * -    Set the loading state variable to false once the call has completed
+   * -    Call the validateResponse(errored, response) function defined previously
+   * -    If response passes validation, return the response object
    *
    * Example for successful response from backend:
-   * HTTP 201
+   * HTTP 200
    * {
    *      "success": true,
    *      "token": "testtoken",
@@ -48,77 +61,95 @@ const Login = () => {
    *      "success": false,
    *      "message": "Password is incorrect"
    * }
-   *
    */
-  const login = async (formData) => {
-    // Condition
-    if (!validateInput(formData)) return;
-    //Start loading
-    setIsLoading(true);
+  performAPICall = async () => {
+    // CRIO_SOLUTION_START_MODULE_LOGIN
+    let response = {};
+    let errored = false;
+    this.setState({
+      loading: true,
+    });
     try {
-      const data = {
-        username: formData.username,
-        password: formData.password,
-      };
-      // POST call
-      let res = await axios.post(`${config.endpoint}/auth/login`, data);
-      persistLogin(res.data.token, res.data.username, res.data.balance);
-      //Redirect to products page
-      history.push("/");
-      //Form reset
-      // setFormData({
-      //   username: "",
-      //   password: "",
-      // });
-      //Success
-      if (res.data.success) {
-        enqueueSnackbar("Logged in successfully", {
-          variant: "success",
-        });
-      }
-    } catch (error) {
-      // If username already exists
-      if (error.response && error.response.status === 400) {
-        enqueueSnackbar(error.response.data.message, { variant: "error" });
-      } else {
-        //Other errors
-        enqueueSnackbar(
-          "Something went wrong. Check that the backend is running, reachable and returns valid JSON.",
-          { variant: "error" }
-        );
-      }
+      response = await (
+        await fetch(`${config.endpoint}/auth/login`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            username: this.state.username,
+            password: this.state.password,
+          }),
+        })
+      ).json();
+    } catch (e) {
+      errored = true;
     }
-    //End loading
-    setIsLoading(false);
+    this.setState({
+      loading: false,
+    });
+    if (this.validateResponse(errored, response)) {
+      return response;
+    }
+    // CRIO_SOLUTION_END_MODULE_LOGIN
   };
 
   // TODO: CRIO_TASK_MODULE_LOGIN - Validate the input
   /**
    * Validate the input values so that any bad or illegal values are not passed to the backend.
    *
-   * @param {{ username: string, password: string }} data
-   *  Object with values of username, password and confirm password user entered to register
-   *
    * @returns {boolean}
    *    Whether validation has passed or not
    *
-   * Return false and show warning message if any validation condition fails, otherwise return true.
-   * (NOTE: The error messages to be shown for each of these cases, are given with them)
-   * -    Check that username field is not an empty value - "Username is a required field"
-   * -    Check that password field is not an empty value - "Password is a required field"
+   * Return false if any validation condition fails, otherwise return true.
+   * -    Check that username field is not an empty value
+   * -    Check that password field is not an empty value
    */
-  const validateInput = (data) => {
-    let { username, password } = data;
-
-    if (!username) {
-      enqueueSnackbar("Username is a required field", { variant: "warning" });
+  validateInput = () => {
+    // CRIO_SOLUTION_START_MODULE_LOGIN
+    if (!this.state.username) {
+      message.error("Username is a required field");
       return false;
     }
-    if (!password) {
-      enqueueSnackbar("Password is a required field", { variant: "warning" });
+    if (!this.state.password) {
+      message.error("Password is a required field");
       return false;
     }
     return true;
+    // CRIO_SOLUTION_END_MODULE_LOGIN
+  };
+
+  // TODO: CRIO_TASK_MODULE_LOGIN - Check the API response
+  /**
+   * Check the response of the API call to be valid and handle any failures along the way
+   *
+   * @param {boolean} errored
+   *    Represents whether an error occurred in the process of making the API call itself
+   * @param {{ success: boolean, message?: string, token?: string, username?: string }} response
+   *    The response JSON object from API call which may contain further success or error messages
+   * @returns {boolean}
+   *    Whether validation has passed or not
+   *
+   * If the API call itself encounters an error, errored flag will be true.
+   * If the backend returns an error, then success field will be false and message field will have a string with error details to be displayed.
+   * When there is an error in the API call itself, display a generic error message and return false.
+   * When there is an error returned by backend, display the given message field and return false.
+   * When there is no error and API call is successful, return true.
+   */
+  validateResponse = (errored, response) => {
+    // CRIO_SOLUTION_START_MODULE_LOGIN
+    if (errored || (!response.success && !response.message)) {
+      message.error(
+        "Something went wrong. Check that the backend is running, reachable and returns valid JSON."
+      );
+      return false;
+    }
+    if (!response.success) {
+      message.error(response.message);
+      return false;
+    }
+    return true;
+    // CRIO_SOLUTION_END_MODULE_LOGIN
   };
 
   // TODO: CRIO_TASK_MODULE_LOGIN - Persist user's login information
@@ -137,77 +168,102 @@ const Login = () => {
    * -    `username` field in localStorage can be used to store the username that the user is logged in as
    * -    `balance` field in localStorage can be used to store the balance amount in the user's wallet
    */
-  const persistLogin = (token, username, balance) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('username', username);
-    localStorage.setItem('balance', balance);
+  persistLogin = (token, username, balance) => {
+    // CRIO_SOLUTION_START_MODULE_LOGIN
+    localStorage.setItem("token", token);
+    localStorage.setItem("username", username);
+    localStorage.setItem("balance", balance);
+    // CRIO_SOLUTION_END_MODULE_LOGIN
   };
 
-  return (
-    <Box
-      display="flex"
-      flexDirection="column"
-      justifyContent="space-between"
-      minHeight="100vh"
-    >
-      <Header hasHiddenAuthButtons />
-      <Box className="content">
-        <Stack spacing={2} className="form">
-          <h2 className="title">Login</h2>
-          <TextField
-            id="username"
-            label="Username"
-            variant="outlined"
-            title="Username"
-            name="username"
-            placeholder="Enter Username"
-            fullWidth
-            onChange={handleInput}
-            value={formData.username || ""}
-          />
-          <TextField
-            id="password"
-            variant="outlined"
-            label="Password"
-            name="password"
-            type="password"
-            helperText="Password must be atleast 6 characters length"
-            fullWidth
-            placeholder="Enter a password with minimum 6 characters"
-            onChange={handleInput}
-            value={formData.password || ""}
-          />
-          {isLoading ? (
-            <Box display="flex" justifyContent="center" alignItems="center">
-              <CircularProgress color="success" size={25} />
-            </Box>
-          ) : (
-            <Button
-              className="button"
-              variant="contained"
-              onClick={async () => {
-                await login(formData);
+  // TODO: CRIO_TASK_MODULE_LOGIN - Implement the login function
+  /**
+   * Definition for login handler
+   * This is the function that is called when the user clicks on the login button or submits the login form
+   * -    Call the previously defined validateInput() function and check that is returns true, i.e. the input values pass validation
+   * -    Call the previously defined performAPICall() function asynchronously and capture the returned value in a variable
+   * -    If the returned value exists,
+   *      -   Call the previously defined persistLogin(token, username, balance) function
+   *      -   Clear the input fields
+   *      -   Display a success message
+   *      -   Redirect the user to the "/products" page
+   */
+
+  // TODO: CRIO_TASK_MODULE_UNDERSTANDING_BASICS - Implement the login() function to display a message, "Login logic not implemented yet"
+  login = async () => {
+    // CRIO_SOLUTION_START_MODULE_UNDERSTANDING_BASICS
+    // CRIO_SOLUTION_END_MODULE_UNDERSTANDING_BASICS
+    // CRIO_UNCOMMENT_START_MODULE_LOGIN
+    // this.validateInput();
+    // CRIO_UNCOMMENT_END_MODULE_LOGIN
+    // CRIO_SOLUTION_START_MODULE_LOGIN
+    if (this.validateInput()) {
+      const response = await this.performAPICall();
+      if (response) {
+        this.persistLogin(response.token, response.username, response.balance);
+        this.setState({
+          username: "",
+          password: "",
+        });
+        message.success("Logged in successfully");
+        this.props.history.push("/products");
+      }
+    }
+    // CRIO_SOLUTION_END_MODULE_LOGIN
+  };
+
+  /**
+   * JSX and HTML goes here
+   * We have a text field and a password field (each with data binding to state), and a submit button that calls login()
+   */
+  render() {
+    return (
+      <>
+        {/* Display Header */}
+        <Header history={this.props.history} />
+
+        {/* Display Login fields */}
+        <div className="flex-container">
+          <div className="login-container container">
+            <h1>Login to QKart</h1>
+
+            <Input
+              className="input-field"
+              prefix={<UserOutlined className="site-form-item-icon" />}
+              placeholder="Username"
+              onChange={(e) => {
+                this.setState({
+                  username: e.target.value,
+                });
               }}
+            />
+
+            <Input.Password
+              className="input-field"
+              prefix={<LockOutlined className="site-form-item-icon" />}
+              placeholder="Password"
+              onChange={(e) => {
+                this.setState({
+                  password: e.target.value,
+                });
+              }}
+            />
+
+            <Button
+              loading={this.state.loading}
+              type="primary"
+              onClick={this.login}
             >
-              LOGIN TO QKART
+              Login
             </Button>
-          )}
-          <p className="secondary-action">
-            Don’t have an account?{" "}
-            <Link className="link" to="/register">
-              Register now
-            </Link>
-          </p>
-        </Stack>
-      </Box>
-      <Footer />
-    </Box>
-  );
-};
+          </div>
+        </div>
 
-export default Login;
+        {/* Display the footer */}
+        <Footer></Footer>
+      </>
+    );
+  }
+}
 
-/* 
-Note; 
-1. Memory leak message after loggedIn as a user 
-*/
+export default withRouter(Login);

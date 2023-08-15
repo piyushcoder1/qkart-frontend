@@ -1,19 +1,16 @@
-import { Box } from "@mui/system";
+// CRIO_SOLUTION_START_MODULE_UNDERSTANDING_BASICS
+// CRIO_SOLUTION_END_MODULE_UNDERSTANDING_BASICS
+import { Footer as AntdFooter } from "antd/lib/layout/layout";
 import React from "react";
+
 import "./Footer.css";
 
-const Footer = () => {
-  return (
-    <Box className="footer">
-      <Box>
-        <img src="logo_dark.svg" alt="QKart-icon"></img>
-      </Box>
-      <p className="footer-text">
-        QKart is your one stop solution to the buy the latest trending items
-        with India's Fastest Delivery to your doorstep
-      </p>
-    </Box>
-  );
-};
-
-export default Footer;
+export default class Footer extends React.Component {
+  render() {
+    return (
+      <AntdFooter className="footer">
+        <img src="icon-white.png" alt="QKart"></img>
+      </AntdFooter>
+    );
+  }
+}

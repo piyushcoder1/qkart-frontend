@@ -1,47 +1,47 @@
-import { Button } from "@mui/material";
-import { Box } from "@mui/system";
-import React, { useEffect } from "react";
-import { useHistory } from "react-router-dom";
-import Footer from "./Footer";
+// CRIO_SOLUTION_START_MODULE_CHECKOUT
+// CRIO_SOLUTION_END_MODULE_CHECKOUT
+import { Button } from "antd";
+import React from "react";
+import { Link, withRouter } from "react-router-dom";
 import Header from "./Header";
 import "./Thanks.css";
 
-const Thanks = () => {
-  const history = useHistory();
+class Thanks extends React.Component {
+  /**
+   * The goal is to display a simple thank you page that the user will see after a successful order goes through
+   * Items to display can include:
+   * -    Thank you text
+   * -    Remaining wallet balance
+   * -    Link to go back to Products page to shop more
+   * @returns {JSX} HTML and JSX to be rendered
+   */
+  render() {
+    return (
+      <>
+        {/* Display Header */}
+        <Header history={this.props.history} />
 
-  const routeToProducts = () => {
-    history.push("/");
-  };
+        {/* Display order details */}
+        <div className="thanks-container">
+          <h1 style={{ fontWeight: "600" }}>It's ordered!</h1>
 
-  useEffect(() => {
-    const token = localStorage.getItem("token");
+          <div className="green-text thanks-line">
+            You will receive an invoice for your order shortly.
+            <br />
+            Your order will arrive in 7 business days.
+          </div>
 
-    if (!token) {
-      history.push("/");
-    }
-  }, [history]);
+          <div className="thanks-line">
+            Wallet balance: <br></br>₹{localStorage.getItem("balance")}{" "} available
+          </div>
 
-  return (
-    <>
-      <Header />
-      <Box className="greeting-container">
-        <h2>Yay! It's ordered 😃</h2>
-        <p>You will receive an invoice for your order shortly.</p>
-        <p>Your order will arrive in 7 business days.</p>
-        <p id="balance-overline">Wallet Balance</p>
-        <p id="balance">${localStorage.getItem("balance")} Available</p>
-        <Button
-          variant="contained"
-          size="large"
-          id="continue-btn"
-          onClick={routeToProducts}
-        >
-          Continue Shopping
-        </Button>
-      </Box>
-      <Footer />
-    </>
-  );
-};
+          <Link to="/products" className="thanks-line">
+            <Button type="primary">Browse for more products</Button>
+          </Link>
+        </div>
+      </>
+    );
+  }
+}
 
-export default Thanks;
+export default withRouter(Thanks);

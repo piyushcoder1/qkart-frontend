@@ -1,38 +1,63 @@
-import Register from "./components/Register";
-import ipConfig from "./ipConfig.json";
-import { Route, Switch } from "react-router-dom";
-import Login from "./components/Login";
-import Products from "./components/Products";
+// CRIO_SOLUTION_START_MODULE_UNDERSTANDING_BASICS
+// CRIO_SOLUTION_END_MODULE_UNDERSTANDING_BASICS
+import "antd/dist/antd.css";
+import React, { useLayoutEffect } from "react";
+import { Route, Switch, useLocation } from "react-router-dom";
 import Checkout from "./components/Checkout";
+import Home from "./components/Home";
+import Login from "./components/Login";
+import Register from "./components/Register";
+import Search from "./components/Search";
 import Thanks from "./components/Thanks";
+import ipConfig from "./ipConfig.json";
 
 export const config = {
-  endpoint: `https://qkart-frontend-i0kb.onrender.com/api/v1`,
+  endpoint: `http://${ipConfig.workspaceIp}:8082/api/v1`,
 };
 
-function App() {
+export default function App(props) {
+  const location = useLocation();
+  // Scroll to top if path changes
+  useLayoutEffect(() => {
+    window && window.scrollTo(0, 0);
+  }, [location.pathname]);
+
   return (
     <div className="App">
-      {/* TODO: CRIO_TASK_MODULE_LOGIN - To add configure routes and their mapping */}
+      {/* CRIO_SOLUTION_START_MODULE_UNDERSTANDING_BASICS */}
+      
       <Switch>
-        <Route exact path="/">
-          <Products />
-        </Route>
+        {/* CRIO_SOLUTION_END_MODULE_UNDERSTANDING_BASICS */}
+        {/* TODO: CRIO_TASK_MODULE_UNDERSTANDING_BASICS - To add route for /register */}
+        {/* CRIO_SOLUTION_START_MODULE_UNDERSTANDING_BASICS */}
         <Route path="/register">
           <Register />
         </Route>
         <Route path="/login">
           <Login />
         </Route>
+        {/* CRIO_SOLUTION_END_MODULE_UNDERSTANDING_BASICS */}
+        <Route path="/products">
+          <Search />
+        </Route>
         <Route path="/checkout">
           <Checkout />
         </Route>
+
         <Route path="/thanks">
           <Thanks />
         </Route>
+
+        {/* TODO: CRIO_TASK_MODULE_UNDERSTANDING_BASICS - To add route for /login */}
+
+        <Route path="/">
+          <Home />
+        </Route>
+
+        {/* CRIO_SOLUTION_START_MODULE_UNDERSTANDING_BASICS */}
       </Switch>
+      {/* CRIO_SOLUTION_END_MODULE_UNDERSTANDING_BASICS */}
+
     </div>
   );
 }
-
-export default App;
